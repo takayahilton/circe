@@ -51,16 +51,12 @@ trait Encoder[A] extends Serializable { self =>
    * Create a new [[Encoder]] by applying a function to a value of type `B` before encoding as an
    * `A`.
    */
-  final def contramap[B](f: B => A): Encoder[B] = new Encoder[B] {
-    final def apply(a: B) = self(f(a))
-  }
+  final def contramap[B](f: B => A): Encoder[B] = b => self(f(b))
 
   /**
    * Create a new [[Encoder]] by applying a function to the output of this one.
    */
-  final def mapJson(f: Json => Json): Encoder[A] = new Encoder[A] {
-    final def apply(a: A): Json = f(self(a))
-  }
+  final def mapJson(f: Json => Json): Encoder[A] = a => f(self(a))
 }
 
 /**
@@ -119,9 +115,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
    *
    * @group Utilities
    */
-  final def instance[A](f: A => Json): Encoder[A] = new Encoder[A] {
-    final def apply(a: A): Json = f(a)
-  }
+  final def instance[A](f: A => Json): Encoder[A] = f(_)
 
   /**
    * Construct an instance for a given type with a [[cats.Foldable]] instance.
@@ -129,52 +123,37 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
    * @group Utilities
    */
   final def encodeFoldable[F[_], A](implicit e: Encoder[A], F: Foldable[F]): AsArray[F[A]] =
-    new AsArray[F[A]] {
-      final def encodeArray(a: F[A]): Vector[Json] =
-        F.foldLeft(a, Vector.empty[Json])((list, v) => e(v) +: list).reverse
-    }
+    F.foldLeft(_, Vector.empty[Json])((list, v) => e(v) +: list).reverse
 
   /**
    * @group Encoding
    */
-  implicit final val encodeJson: Encoder[Json] = new Encoder[Json] {
-    final def apply(a: Json): Json = a
-  }
+  implicit final val encodeJson: Encoder[Json] = identity _
 
   /**
    * @group Encoding
    */
-  implicit final val encodeJsonObject: AsObject[JsonObject] = new AsObject[JsonObject] {
-    final def encodeObject(a: JsonObject): JsonObject = a
-  }
+  implicit final val encodeJsonObject: AsObject[JsonObject] = identity _
 
   /**
    * @group Encoding
    */
-  implicit final val encodeJsonNumber: Encoder[JsonNumber] = new Encoder[JsonNumber] {
-    final def apply(a: JsonNumber): Json = Json.fromJsonNumber(a)
-  }
+  implicit final val encodeJsonNumber: Encoder[JsonNumber] = Json.fromJsonNumber(_)
 
   /**
    * @group Encoding
    */
-  implicit final val encodeString: Encoder[String] = new Encoder[String] {
-    final def apply(a: String): Json = Json.fromString(a)
-  }
+  implicit final val encodeString: Encoder[String] = Json.fromString(_)
 
   /**
    * @group Encoding
    */
-  implicit final val encodeUnit: AsObject[Unit] = new AsObject[Unit] {
-    final def encodeObject(a: Unit): JsonObject = JsonObject.empty
-  }
+  implicit final val encodeUnit: AsObject[Unit] = _ => JsonObject.empty
 
   /**
    * @group Encoding
    */
-  implicit final val encodeBoolean: Encoder[Boolean] = new Encoder[Boolean] {
-    final def apply(a: Boolean): Json = Json.fromBoolean(a)
-  }
+  implicit final val encodeBoolean: Encoder[Boolean] = Json.fromBoolean(_)
 
   /**
    * @group Encoding
@@ -184,9 +163,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeChar: Encoder[Char] = new Encoder[Char] {
-    final def apply(a: Char): Json = Json.fromString(a.toString)
-  }
+  implicit final val encodeChar: Encoder[Char] = a => Json.fromString(a.toString)
 
   /**
    * @group Encoding
@@ -200,9 +177,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
    *
    * @group Encoding
    */
-  implicit final val encodeFloat: Encoder[Float] = new Encoder[Float] {
-    final def apply(a: Float): Json = Json.fromFloatOrNull(a)
-  }
+  implicit final val encodeFloat: Encoder[Float] = Json.fromFloatOrNull(_)
 
   /**
    * @group Encoding
@@ -212,9 +187,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeDouble: Encoder[Double] = new Encoder[Double] {
-    final def apply(a: Double): Json = Json.fromDoubleOrNull(a)
-  }
+  implicit final val encodeDouble: Encoder[Double] = Json.fromDoubleOrNull(_)
 
   /**
    * @group Encoding
@@ -224,9 +197,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeByte: Encoder[Byte] = new Encoder[Byte] {
-    final def apply(a: Byte): Json = Json.fromInt(a.toInt)
-  }
+  implicit final val encodeByte: Encoder[Byte] = a => Json.fromInt(a.toInt)
 
   /**
    * @group Encoding
@@ -236,9 +207,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeShort: Encoder[Short] = new Encoder[Short] {
-    final def apply(a: Short): Json = Json.fromInt(a.toInt)
-  }
+  implicit final val encodeShort: Encoder[Short] = a => Json.fromInt(a.toInt)
 
   /**
    * @group Encoding
@@ -248,9 +217,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeInt: Encoder[Int] = new Encoder[Int] {
-    final def apply(a: Int): Json = Json.fromInt(a)
-  }
+  implicit final val encodeInt: Encoder[Int] = Json.fromInt(_)
 
   /**
    * @group Encoding
@@ -260,9 +227,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeLong: Encoder[Long] = new Encoder[Long] {
-    final def apply(a: Long): Json = Json.fromLong(a)
-  }
+  implicit final val encodeLong: Encoder[Long] = Json.fromLong(_)
 
   /**
    * @group Encoding
@@ -272,9 +237,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeBigInt: Encoder[BigInt] = new Encoder[BigInt] {
-    final def apply(a: BigInt): Json = Json.fromBigInt(a)
-  }
+  implicit final val encodeBigInt: Encoder[BigInt] = Json.fromBigInt(_)
 
   /**
    * @group Encoding
@@ -284,9 +247,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeBigDecimal: Encoder[BigDecimal] = new Encoder[BigDecimal] {
-    final def apply(a: BigDecimal): Json = Json.fromBigDecimal(a)
-  }
+  implicit final val encodeBigDecimal: Encoder[BigDecimal] = Json.fromBigDecimal(_)
 
   /**
    * @group Encoding
@@ -296,18 +257,14 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeUUID: Encoder[UUID] = new Encoder[UUID] {
-    final def apply(a: UUID): Json = Json.fromString(a.toString)
-  }
+  implicit final val encodeUUID: Encoder[UUID] = a => Json.fromString(a.toString)
 
   /**
    * @group Encoding
    */
-  implicit final def encodeOption[A](implicit e: Encoder[A]): Encoder[Option[A]] = new Encoder[Option[A]] {
-    final def apply(a: Option[A]): Json = a match {
-      case Some(v) => e(v)
-      case None    => Json.Null
-    }
+  implicit final def encodeOption[A](implicit e: Encoder[A]): Encoder[Option[A]] = {
+    case Some(v) => e(v)
+    case None    => Json.Null
   }
 
   /**
@@ -318,9 +275,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Encoding
    */
-  implicit final val encodeNone: Encoder[None.type] = new Encoder[None.type] {
-    final def apply(a: None.type): Json = Json.Null
-  }
+  implicit final val encodeNone: Encoder[None.type] = _ => Json.Null
 
   /**
    * @group Collection
@@ -366,25 +321,19 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
    * @group Collection
    */
   implicit final def encodeNonEmptyList[A](implicit encodeA: Encoder[A]): AsArray[NonEmptyList[A]] =
-    new AsArray[NonEmptyList[A]] {
-      final def encodeArray(a: NonEmptyList[A]): Vector[Json] = a.toList.toVector.map(encodeA(_))
-    }
+    _.toList.toVector.map(encodeA(_))
 
   /**
    * @group Collection
    */
   implicit final def encodeNonEmptyVector[A](implicit encodeA: Encoder[A]): AsArray[NonEmptyVector[A]] =
-    new AsArray[NonEmptyVector[A]] {
-      final def encodeArray(a: NonEmptyVector[A]): Vector[Json] = a.toVector.map(encodeA(_))
-    }
+    _.toVector.map(encodeA(_))
 
   /**
    * @group Collection
    */
   implicit final def encodeNonEmptySet[A](implicit encodeA: Encoder[A]): AsArray[NonEmptySet[A]] =
-    new AsArray[NonEmptySet[A]] {
-      final def encodeArray(a: NonEmptySet[A]): Vector[Json] = a.toSortedSet.toVector.map(encodeA(_))
-    }
+    _.toSortedSet.toVector.map(encodeA(_))
 
   /**
    * @group Collection
@@ -394,18 +343,13 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
     encodeK: KeyEncoder[K],
     encodeV: Encoder[V]
   ): AsObject[NonEmptyMap[K, V]] =
-    new AsObject[NonEmptyMap[K, V]] {
-      final def encodeObject(a: NonEmptyMap[K, V]): JsonObject =
-        encodeMap[K, V].encodeObject(a.toSortedMap)
-    }
+    a => encodeMap[K, V].encodeObject(a.toSortedMap)
 
   /**
    * @group Collection
    */
   implicit final def encodeNonEmptyChain[A](implicit encodeA: Encoder[A]): AsArray[NonEmptyChain[A]] =
-    new AsArray[NonEmptyChain[A]] {
-      final def encodeArray(a: NonEmptyChain[A]): Vector[Json] = a.toChain.toVector.map(encodeA(_))
-    }
+    _.toChain.toVector.map(encodeA(_))
 
   /**
    * @group Collection
@@ -453,11 +397,9 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
     implicit
     ea: Encoder[A],
     eb: Encoder[B]
-  ): AsObject[Either[A, B]] = new AsObject[Either[A, B]] {
-    final def encodeObject(a: Either[A, B]): JsonObject = a match {
-      case Left(a)  => JsonObject.singleton(leftKey, ea(a))
-      case Right(b) => JsonObject.singleton(rightKey, eb(b))
-    }
+  ): AsObject[Either[A, B]] = {
+    case Left(a)  => JsonObject.singleton(leftKey, ea(a))
+    case Right(b) => JsonObject.singleton(rightKey, eb(b))
   }
 
   /**
@@ -534,30 +476,22 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Time
    */
-  implicit final val encodeDuration: Encoder[Duration] = new Encoder[Duration] {
-    final def apply(a: Duration) = Json.fromString(a.toString)
-  }
+  implicit final val encodeDuration: Encoder[Duration] = a => Json.fromString(a.toString)
 
   /**
    * @group Time
    */
-  implicit final val encodeInstant: Encoder[Instant] = new Encoder[Instant] {
-    final def apply(a: Instant): Json = Json.fromString(a.toString)
-  }
+  implicit final val encodeInstant: Encoder[Instant] = a => Json.fromString(a.toString)
 
   /**
    * @group Time
    */
-  implicit final val encodePeriod: Encoder[Period] = new Encoder[Period] {
-    final def apply(a: Period): Json = Json.fromString(a.toString)
-  }
+  implicit final val encodePeriod: Encoder[Period] = a => Json.fromString(a.toString)
 
   /**
    * @group Time
    */
-  implicit final val encodeZoneId: Encoder[ZoneId] = new Encoder[ZoneId] {
-    final def apply(a: ZoneId): Json = Json.fromString(a.getId)
-  }
+  implicit final val encodeZoneId: Encoder[ZoneId] = a => Json.fromString(a.getId)
 
   /**
    * @group Time
@@ -666,10 +600,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Time
    */
-  implicit final val encodeMonthDay: Encoder[MonthDay] = new Encoder[MonthDay] {
-    final def apply(a: MonthDay): Json = Json.fromString(a.toString)
-  }
-
+  implicit final val encodeMonthDay: Encoder[MonthDay] = a => Json.fromString(a.toString)
   /**
    * @group Time
    */
@@ -689,16 +620,12 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Time
    */
-  implicit final val encodeYear: Encoder[Year] = new Encoder[Year] {
-    final def apply(a: Year): Json = Json.fromString(a.toString)
-  }
+  implicit final val encodeYear: Encoder[Year] = a => Json.fromString(a.toString)
 
   /**
    * @group Time
    */
-  implicit final val encodeYearMonth: Encoder[YearMonth] = new Encoder[YearMonth] {
-    final def apply(a: YearMonth): Json = Json.fromString(a.toString)
-  }
+  implicit final val encodeYearMonth: Encoder[YearMonth] = a => Json.fromString(a.toString)
 
   /**
    * @group Time
@@ -711,9 +638,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
   /**
    * @group Time
    */
-  implicit final val encodeZoneOffset: Encoder[ZoneOffset] = new Encoder[ZoneOffset] {
-    final def apply(a: ZoneOffset): Json = Json.fromString(a.toString)
-  }
+  implicit final val encodeZoneOffset: Encoder[ZoneOffset] = a => Json.fromString(a.toString)
 
   /**
    * A subtype of `Encoder` that statically verifies that the instance encodes
@@ -771,17 +696,13 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
      * Create a new [[AsArray]] by applying a function to a value of type `B` before encoding as
      * an `A`.
      */
-    final def contramapArray[B](f: B => A): AsArray[B] = new AsArray[B] {
-      final def encodeArray(a: B) = self.encodeArray(f(a))
-    }
+    final def contramapArray[B](f: B => A): AsArray[B] = a => self.encodeArray(f(a))
 
     /**
      * Create a new [[AsArray]] by applying a function to the output of this
      * one.
      */
-    final def mapJsonArray(f: Vector[Json] => Vector[Json]): AsArray[A] = new AsArray[A] {
-      final def encodeArray(a: A): Vector[Json] = f(self.encodeArray(a))
-    }
+    final def mapJsonArray(f: Vector[Json] => Vector[Json]): AsArray[A] = a => f(self.encodeArray(a))
   }
 
   /**
@@ -812,9 +733,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
      *
      * @group Utilities
      */
-    final def instance[A](f: A => Vector[Json]): AsArray[A] = new AsArray[A] {
-      final def encodeArray(a: A): Vector[Json] = f(a)
-    }
+    final def instance[A](f: A => Vector[Json]): AsArray[A] = f(_)
 
     /**
      * @group Instances
@@ -851,17 +770,13 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
      * Create a new [[AsObject]] by applying a function to a value of type `B` before encoding as an
      * `A`.
      */
-    final def contramapObject[B](f: B => A): AsObject[B] = new AsObject[B] {
-      final def encodeObject(a: B) = self.encodeObject(f(a))
-    }
+    final def contramapObject[B](f: B => A): AsObject[B] = a => self.encodeObject(f(a))
 
     /**
      * Create a new [[AsObject]] by applying a function to the output of this
      * one.
      */
-    final def mapJsonObject(f: JsonObject => JsonObject): AsObject[A] = new AsObject[A] {
-      final def encodeObject(a: A): JsonObject = f(self.encodeObject(a))
-    }
+    final def mapJsonObject(f: JsonObject => JsonObject): AsObject[A] = a => f(self.encodeObject(a))
   }
 
   /**
@@ -892,9 +807,7 @@ final object Encoder extends TupleEncoders with ProductEncoders with LiteralEnco
      *
      * @group Utilities
      */
-    final def instance[A](f: A => JsonObject): AsObject[A] = new AsObject[A] {
-      final def encodeObject(a: A): JsonObject = f(a)
-    }
+    final def instance[A](f: A => JsonObject): AsObject[A] = f(_)
 
     /**
      * @group Instances
